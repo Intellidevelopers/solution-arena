@@ -1,34 +1,33 @@
-// models/Product.js
 const mongoose = require("mongoose");
 
 const ProductSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    mainPrice: { type: Number, required: true },
-    discountedPrice: { type: Number },
+    description: { type: String, required: true },
+
+    // Pricing
+    price: { type: Number, required: true },
+    negotiable: { type: Boolean, default: false },
+
+    // Category relations
     category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     subCategory: { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory", required: true },
 
-    // Product extra info
-    brand: { type: String },
-    model: { type: String },
-    type: { type: String },
-    exchangePossible: { type: Boolean, default: false },
-    description: { type: String },
-    openToNegotiation: { type: Boolean, default: false },
-    quantity: { type: Number, default: 1 },
+    // Location
+    state: { type: String },
+    city: { type: String },
+    country: { type: String },
+
+    // Product info
+    purchaseYear: { type: String }, // e.g. "2022"
+    condition: { type: String, enum: ["New", "Used", "Refurbished"], default: "Used" },
 
     // Media
+    thumbnail: { type: String }, // main image
     images: [{ type: String }],
-    videos: [{ type: String }],
 
-    // Dynamic attributes (RAM, Storage, Warranty, etc.)
-    attributes: [
-      {
-        name: String,  // e.g. "RAM"
-        value: String, // e.g. "16GB"
-      }
-    ],
+    // Link to user
+    poster: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
 );
