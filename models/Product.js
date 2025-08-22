@@ -1,21 +1,36 @@
-const mongoose = require('mongoose');
+// models/Product.js
+const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  mainPrice: { type: Number, required: true },
-  discountedPrice: { type: Number },
-  category: { type: String, required: true },
-  city: { type: String, required: true },
-  state: { type: String, required: true },
-  brand: { type: String },
-  model: { type: String },
-  type: { type: String },
-  exchangePossible: { type: String, enum: ['Yes', 'No'], required: true },
-  description: { type: String, required: true },
-  openToNegotiation: { type: String, enum: ['Yes', 'No', 'Not sure'], required: true },
-  quantity: { type: Number, required: true },
-  images: [String],
-  videos: [String],
-}, { timestamps: true });
+const ProductSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    mainPrice: { type: Number, required: true },
+    discountedPrice: { type: Number },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    subCategory: { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory", required: true },
 
-module.exports = mongoose.model('Product', productSchema);
+    // Product extra info
+    brand: { type: String },
+    model: { type: String },
+    type: { type: String },
+    exchangePossible: { type: Boolean, default: false },
+    description: { type: String },
+    openToNegotiation: { type: Boolean, default: false },
+    quantity: { type: Number, default: 1 },
+
+    // Media
+    images: [{ type: String }],
+    videos: [{ type: String }],
+
+    // Dynamic attributes (RAM, Storage, Warranty, etc.)
+    attributes: [
+      {
+        name: String,  // e.g. "RAM"
+        value: String, // e.g. "16GB"
+      }
+    ],
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Product", ProductSchema);

@@ -23,6 +23,7 @@ exports.createProduct = async (req, res) => {
       mainPrice,
       discountedPrice,
       category,
+      subCategory,   // 👈 NEW
       city,
       state,
       brand,
@@ -31,24 +32,25 @@ exports.createProduct = async (req, res) => {
       exchangePossible,
       description,
       openToNegotiation,
-      quantity
+      quantity,
+      attributes      // 👈 NEW (array of { name, value })
     } = req.body;
 
     let imageUrls = [];
     let videoUrls = [];
 
     // Upload images
-    if (req.files.images) {
+    if (req.files?.images) {
       for (let img of req.files.images) {
-        const uploadedImage = await uploadToCloudinary(img.buffer, 'products/images', 'image');
+        const uploadedImage = await uploadToCloudinary(img.buffer, "products/images", "image");
         imageUrls.push(uploadedImage.secure_url);
       }
     }
 
     // Upload videos
-    if (req.files.videos) {
+    if (req.files?.videos) {
       for (let vid of req.files.videos) {
-        const uploadedVideo = await uploadToCloudinary(vid.buffer, 'products/videos', 'video');
+        const uploadedVideo = await uploadToCloudinary(vid.buffer, "products/videos", "video");
         videoUrls.push(uploadedVideo.secure_url);
       }
     }
@@ -58,6 +60,7 @@ exports.createProduct = async (req, res) => {
       mainPrice,
       discountedPrice,
       category,
+      subCategory,  // 👈 included
       city,
       state,
       brand,
@@ -68,20 +71,23 @@ exports.createProduct = async (req, res) => {
       openToNegotiation,
       quantity,
       images: imageUrls,
-      videos: videoUrls
+      videos: videoUrls,
+      attributes   // 👈 included
     });
 
     await product.save();
 
     res.status(201).json({
-      message: 'Product created successfully',
+      success: true,
+      message: "Product created successfully",
       product
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 exports.getProducts = async (req, res) => {
   try {

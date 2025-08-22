@@ -1,5 +1,6 @@
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const SubCategory = require("../models/subCategoryModel"); 
 
 // Create Category
 exports.createCategory = async (req, res) => {
@@ -18,7 +19,7 @@ exports.createCategory = async (req, res) => {
 // Get All Categories with Product Count
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().lean();
 
     const data = await Promise.all(
       categories.map(async (cat) => {
@@ -33,11 +34,15 @@ exports.getCategories = async (req, res) => {
           countDisplay = `${count} products`;
         }
 
+        // fetch all subcategories for this category
+        const subcategories = await SubCategory.find({ category: cat._id }).lean();
+
         return {
           _id: cat._id,
           title: cat.title,
           icon: cat.icon,
-          productCount: countDisplay
+          productCount: countDisplay,
+          subcategories, // 👈 nested here
         };
       })
     );

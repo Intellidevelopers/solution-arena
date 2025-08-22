@@ -11,6 +11,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const subCategoryRoutes = require("./routes/subCategoryRoutes");
 
 dotenv.config();
 connectDB();
@@ -29,6 +30,7 @@ app.use(compression());
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/category', categoryRoutes);
+app.use("/api/subcategories", subCategoryRoutes);
 
 // Error handling middleware
 app.use(require('./middlewares/errorMiddleware'));
