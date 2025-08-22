@@ -31,28 +31,10 @@ exports.createProduct = async (req, res) => {
       city,
       country,
       purchaseYear,
-      condition
+      condition,
+      thumbnail, // <-- URL from front-end
+      images     // <-- array of URLs from front-end
     } = req.body;
-
-    let thumbnailUrl = "";
-    let imageUrls = [];
-
-    // 🔹 Upload thumbnail (first file field)
-    if (req.files?.thumbnail && req.files.thumbnail[0]) {
-      thumbnailUrl = await uploadToCloudinary(
-        req.files.thumbnail[0].buffer,
-        "products/thumbnail",
-        "image"
-      );
-    }
-
-    // 🔹 Upload images (array of files)
-    if (req.files?.images) {
-      for (let img of req.files.images) {
-        const uploaded = await uploadToCloudinary(img.buffer, "products/images", "image");
-        imageUrls.push(uploaded);
-      }
-    }
 
     const product = new Product({
       title,
@@ -66,14 +48,13 @@ exports.createProduct = async (req, res) => {
       country,
       purchaseYear,
       condition,
-      thumbnail: thumbnailUrl,
-      images: imageUrls,
-      poster: req.user.id // 👈 logged-in user
+      thumbnail,
+      images,
+      poster: req.user.id
     });
 
     await product.save();
 
-    // Populate before sending back
     const savedProduct = await Product.findById(product._id)
       .populate("category", "name")
       .populate("subCategory", "name")
@@ -86,11 +67,10 @@ exports.createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error creating product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
+
 
 
 // ✅ Get all products
