@@ -26,7 +26,7 @@ router.get("/product/:id", async (req, res) => {
 
   try {
     const product = await Product.findById(productId)
-      .populate("poster", "firstName lastName email address avatar state city")
+      .populate("poster", "firstName lastName email address avatar state city, businessName")
       .populate("category", "name")
       .populate("subCategory", "name");
 
