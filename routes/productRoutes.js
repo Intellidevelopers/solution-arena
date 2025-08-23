@@ -4,6 +4,7 @@ const router = express.Router();
 const upload = require('../middlewares/upload');
 const productController = require('../controllers/productController');
 const { protect } = require('../middlewares/authMiddleware');
+const Product = require('../models/Product');
 
 
 // Handle multiple fields: images[] and videos[]
@@ -20,5 +21,21 @@ router.post(
 
 router.get('/', productController.getProducts);
 router.get("/my-listings", protect, productController.getUserListings);
+router.get("/product/:id", async (req, res) => {
+  const productId = req.params.id;
+
+  try {
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    return res.json({ success: true, message: "Product fetched successfully", data: product });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 module.exports = router;
