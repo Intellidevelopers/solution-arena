@@ -79,7 +79,7 @@ const getProducts = async (req, res) => {
     const products = await Product.find()
       .populate("category", "name")
       .populate("subCategory", "name")
-      .populate("poster", "name email");
+      .populate("poster", "firstName lastName email address avatar"); // added fields
 
     res.json({
       success: true,
@@ -91,6 +91,7 @@ const getProducts = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
+
 
 // Get listings of logged-in user
 const getUserListings = async (req, res) => {
