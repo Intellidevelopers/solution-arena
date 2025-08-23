@@ -3,7 +3,7 @@ const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
-// ✅ helper to upload buffer to Cloudinary
+// ✅ Helper to upload buffer to Cloudinary
 const uploadToCloudinary = (fileBuffer, folder, resourceType) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -17,7 +17,7 @@ const uploadToCloudinary = (fileBuffer, folder, resourceType) => {
   });
 };
 
-// ✅ Create product
+// ✅ Create product with Cloudinary upload
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -32,10 +32,34 @@ exports.createProduct = async (req, res) => {
       country,
       purchaseYear,
       condition,
-      thumbnail, // <-- URL from front-end
-      images     // <-- array of URLs from front-end
+      poster,
     } = req.body;
 
+    // Files from multipart/form-data
+    const thumbnailFile = req.files?.thumbnail?.[0];
+    const imageFiles = req.files?.images || [];
+
+    // Upload thumbnail if provided
+    let thumbnailUrl = "";
+    if (thumbnailFile) {
+      thumbnailUrl = await uploadToCloudinary(
+        thumbnailFile.buffer,
+        "products/thumbnails",
+        "image"
+      );
+    }
+
+    // Upload multiple images
+    let imagesUrls = [];
+    if (imageFiles.length > 0) {
+      imagesUrls = await Promise.all(
+        imageFiles.map((file) =>
+          uploadToCloudinary(file.buffer, "products/images", "image")
+        )
+      );
+    }
+
+    // Create product
     const product = new Product({
       title,
       description,
@@ -48,30 +72,27 @@ exports.createProduct = async (req, res) => {
       country,
       purchaseYear,
       condition,
-      thumbnail,
-      images,
-      poster: req.user.id
+      thumbnail: thumbnailUrl,
+      images: imagesUrls,
+      poster,
     });
 
-    await product.save();
-
-    const savedProduct = await Product.findById(product._id)
-      .populate("category", "name")
-      .populate("subCategory", "name")
-      .populate("poster", "name email");
+    const savedProduct = await product.save();
 
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      product: savedProduct
+      product: savedProduct,
     });
   } catch (error) {
     console.error("❌ Error creating product:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
-
-
 
 // ✅ Get all products
 exports.getProducts = async (req, res) => {
@@ -84,13 +105,15 @@ exports.getProducts = async (req, res) => {
     res.json({
       success: true,
       message: "Products fetched successfully",
-      data: products
+      data: products,
     });
   } catch (error) {
     console.error("❌ Error fetching products:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -107,14 +130,14 @@ exports.getUserListings = async (req, res) => {
     res.json({
       success: true,
       message: "User listings fetched successfully",
-      data: listings
+      data: listings,
     });
   } catch (error) {
     console.error("❌ Error fetching user listings:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
