@@ -32,21 +32,14 @@ const createProduct = async (req, res) => {
       country,
       purchaseYear,
       condition,
-      poster,
+      thumbnail,
+      images,
     } = req.body;
 
-    const thumbnailFile = req.files?.thumbnail?.[0];
-    const imageFiles = req.files?.images || [];
+    const poster = req.user?._id; // ✅ get from auth middleware
 
-    let thumbnailUrl = "";
-    if (thumbnailFile) {
-      thumbnailUrl = await uploadToCloudinary(thumbnailFile.buffer, "products/thumbnails");
-    }
-
-    const imageUrls = [];
-    for (const file of imageFiles) {
-      const url = await uploadToCloudinary(file.buffer, "products/images");
-      imageUrls.push(url);
+    if (!poster) {
+      return res.status(400).json({ success: false, message: "Poster is required" });
     }
 
     const product = new Product({
@@ -61,9 +54,9 @@ const createProduct = async (req, res) => {
       country,
       purchaseYear,
       condition,
-      thumbnail: thumbnailUrl,
-      images: imageUrls,
-      poster,
+      thumbnail,
+      images,
+      poster, // ✅ set poster
     });
 
     const savedProduct = await product.save();
@@ -74,10 +67,11 @@ const createProduct = async (req, res) => {
       product: savedProduct,
     });
   } catch (error) {
-    console.error("Error creating product:", error);
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 // Get all products
 const getProducts = async (req, res) => {
