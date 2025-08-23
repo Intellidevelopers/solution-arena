@@ -25,17 +25,25 @@ router.get("/product/:id", async (req, res) => {
   const productId = req.params.id;
 
   try {
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+      .populate("poster", "firstName lastName email address avatar state city")
+      .populate("category", "name")
+      .populate("subCategory", "name");
 
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    return res.json({ success: true, message: "Product fetched successfully", data: product });
+    return res.json({
+      success: true,
+      message: "Product fetched successfully",
+      data: product,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 });
+
 
 module.exports = router;
