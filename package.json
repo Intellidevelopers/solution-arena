@@ -30,6 +30,8 @@
     "nodemailer": "^7.0.5",
     "otp-generator": "^4.0.1",
     "streamifier": "^0.1.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

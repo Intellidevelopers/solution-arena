@@ -6,12 +6,16 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const connectDB = require('./config/db');
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./swagger"); // import config
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const subCategoryRoutes = require("./routes/subCategoryRoutes");
+const followRoutes = require("./routes/followRoutes");
+
 
 dotenv.config();
 connectDB();
@@ -34,6 +38,9 @@ app.use("/api/subcategories", subCategoryRoutes);
 
 // Error handling middleware
 app.use(require('./middlewares/errorMiddleware'));
+app.use("/api", followRoutes);
+// Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
