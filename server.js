@@ -87,6 +87,27 @@ io.on("connection", (socket) => {
     socket.to(String(chatId)).emit("typing", { chatId, senderId, isTyping });
   });
 
+  // In your server
+socket.on("sendMessage", async ({ chatId, senderId, text }) => {
+  try {
+    const Message = require("./models/Message");
+    const Chat = require("./models/Chat");
+
+    const message = new Message({ chat: chatId, sender: senderId, text });
+    await message.save();
+
+    await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+
+    const populatedMessage = await message.populate("sender", "name email");
+
+    // Emit to everyone in the room (including sender)
+    io.to(chatId).emit("newMessage", populatedMessage);
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     onlineUsers = Object.fromEntries(
