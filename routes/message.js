@@ -76,6 +76,7 @@ router.post("/send", protect, async (req, res) => {
       chat: chatId,
       sender,
       text,
+      read: false,
     });
 
     await message.save();
@@ -83,7 +84,7 @@ router.post("/send", protect, async (req, res) => {
     chat.lastMessage = text;
     await chat.save();
 
-    const populatedMessage = await message.populate("sender", "name email");
+    const populatedMessage = await message.populate("sender", "_id name email");
 
     res.json({ success: true, message: populatedMessage });
   } catch (err) {
