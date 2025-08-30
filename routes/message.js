@@ -2,6 +2,7 @@ const express = require("express");
 const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { protect } = require("../middlewares/authMiddleware");
+const socketHelper = require("../socket"); // <- helper module that exposes init/getIO
 
 const router = express.Router();
 
@@ -60,18 +61,27 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
+
 router.post("/send", protect, async (req, res) => {
   try {
     const { chatId, text } = req.body;
     const sender = req.user._id;
 
     if (!chatId || !text) {
-      return res.status(400).json({ success: false, message: "chatId and text are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "chatId and text are required" });
     }
 
+    // verify chat exists
     const chat = await Chat.findById(chatId);
-    if (!chat) return res.status(404).json({ success: false, message: "Chat not found" });
+    if (!chat) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat not found" });
+    }
 
+    // create and save message
     const message = new Message({
       chat: chatId,
       sender,
@@ -81,17 +91,38 @@ router.post("/send", protect, async (req, res) => {
 
     await message.save();
 
+    // update chat's lastMessage
     chat.lastMessage = text;
     await chat.save();
 
-    const populatedMessage = await message.populate("sender", "_id name email");
+    // populate sender fields we want to send to clients
+    const populatedMessageDoc = await message.populate("sender", "_id name email");
+    // convert to plain object for safer emission
+    const populatedMessage = populatedMessageDoc.toObject
+      ? populatedMessageDoc.toObject()
+      : populatedMessageDoc;
 
-    res.json({ success: true, message: populatedMessage });
+    // Emit the saved message to the chat room (if socket io is initialized)
+    try {
+      const io = socketHelper.getIO(); // throws if not initialized
+      // emit to the room identified by chatId
+      io.to(String(chatId)).emit("newMessage", populatedMessage);
+      // optionally emit to global 'newMessageAll' if you want other UI to react
+      // io.emit("newMessageAll", { chatId, message: populatedMessage });
+    } catch (emitErr) {
+      // socket may not be initialized (e.g. tests, or early in boot) — do not fail the request
+      console.warn("Socket.io not initialized - message saved but not emitted:", emitErr.message || emitErr);
+    }
+
+    return res.json({ success: true, message: populatedMessage });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("POST /api/message/send error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+module.exports = router;
+
 
 /**
  * @swagger
