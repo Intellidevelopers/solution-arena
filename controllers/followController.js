@@ -2,9 +2,14 @@
 const User = require("../models/User");
 
 // Follow a user
+// Follow a user
 exports.followUser = async (req, res) => {
   try {
     const { userId, targetId } = req.body; // who follows who
+
+    if (!userId || !targetId) {
+      return res.status(400).json({ success: false, message: "userId and targetId are required" });
+    }
 
     if (userId === targetId) {
       return res.status(400).json({ success: false, message: "You cannot follow yourself" });
@@ -31,15 +36,25 @@ exports.followUser = async (req, res) => {
 
     return res.json({ success: true, message: "Followed successfully" });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Follow action failed" });
+    console.error("❌ Follow Error:", error.message, error.stack);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
+
+// Unfollow a user
 // Unfollow a user
 exports.unfollowUser = async (req, res) => {
   try {
     const { userId, targetId } = req.body;
+
+    if (!userId || !targetId) {
+      return res.status(400).json({ success: false, message: "userId and targetId are required" });
+    }
+
+    if (userId === targetId) {
+      return res.status(400).json({ success: false, message: "You cannot unfollow yourself" });
+    }
 
     const user = await User.findById(userId);
     const targetUser = await User.findById(targetId);
@@ -48,21 +63,21 @@ exports.unfollowUser = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Check if not following
+    // Check if user is actually following
     if (!user.following.includes(targetId)) {
       return res.status(400).json({ success: false, message: "You are not following this user" });
     }
 
-    // Remove from following/followers
-    user.following = user.following.filter(id => id.toString() !== targetId);
-    targetUser.followers = targetUser.followers.filter(id => id.toString() !== userId);
+    // Remove from following and followers
+    user.following = user.following.filter(id => id.toString() !== targetId.toString());
+    targetUser.followers = targetUser.followers.filter(id => id.toString() !== userId.toString());
 
     await user.save();
     await targetUser.save();
 
     return res.json({ success: true, message: "Unfollowed successfully" });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Unfollow action failed" });
+    console.error("❌ Unfollow Error:", error.message, error.stack);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

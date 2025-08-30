@@ -205,3 +205,43 @@ exports.getProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+// GET seller profile
+exports.getSellerProfile = async (req, res) => {
+  try {
+    const { sellerId, currentUserId } = req.query;
+
+    const seller = await User.findById(sellerId).select("businessName createdAt");
+
+    if (!seller) {
+      return res.status(404).json({ success: false, message: "Seller not found" });
+    }
+
+    // Count stats
+    const listingsCount = await Listing.countDocuments({ seller: sellerId });
+    const soldCount = await Listing.countDocuments({ seller: sellerId, status: "sold" });
+    const followersCount = seller.followers.length;
+    const followingCount = seller.following.length;
+
+    // Check if current user is following this seller
+    const isFollowing = seller.followers.includes(currentUserId);
+
+    return res.json({
+      success: true,
+      data: {
+        seller,
+        stats: {
+          listings: listingsCount,
+          sold: soldCount,
+          followers: followersCount,
+          following: followingCount
+        },
+        isFollowing
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to fetch seller profile" });
+  }
+};

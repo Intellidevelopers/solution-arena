@@ -136,6 +136,20 @@ router.post("/resend-otp", authController.resendOTP);
  */
 router.get("/profile", protect, authController.getProfile);
 
+/**
+ * @swagger
+ * /auth/user-profile:
+ *   get:
+ *     summary: Get logged-in user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile data
+ */
+router.get("/:sellerId/profile", protect, authController.getSellerProfile);
+
 
 /**
  * @swagger
@@ -151,31 +165,42 @@ router.get("/profile", protect, authController.getProfile);
  *         required: true
  *         description: Seller ID
  */
-router.get("/:sellerId/stats", async (req, res) => {
+// GET seller stats + isFollowing
+router.get("/:sellerId/stats", protect, async (req, res) => {
   try {
     const { sellerId } = req.params;
 
+    // count listings and sold
     const listings = await Product.countDocuments({ poster: sellerId });
-    const sold = await Product.countDocuments({
-      poster: sellerId,
-      status: "sold",
-    });
+    const sold = await Product.countDocuments({ poster: sellerId, status: "sold" });
 
-    const seller = await User.findById(sellerId).populate(
-      "followers following",
-      "_id"
+    // get seller info
+    const seller = await User.findById(sellerId).populate("followers following", "_id");
+
+    // check if logged-in user follows this seller
+    const isFollowing = seller.followers.some(
+      (f) => f._id.toString() === req.user.id
     );
 
     res.json({
       success: true,
       data: {
-        listings,
-        sold,
-        followers: seller.followers.length,
-        following: seller.following.length,
+        seller: {
+          _id: seller._id,
+          businessName: seller.businessName,
+          createdAt: seller.createdAt,
+        },
+        stats: {
+          listings,
+          sold,
+          followers: seller.followers.length,
+          following: seller.following.length,
+        },
+        isFollowing, // 👈 added this
       },
     });
   } catch (error) {
+    console.error("Stats error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch stats" });
   }
 });
