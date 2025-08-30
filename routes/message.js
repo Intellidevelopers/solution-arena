@@ -134,7 +134,7 @@ router.get("/:chatId", protect, async (req, res) => {
     const { chatId } = req.params;
 
     const messages = await Message.find({ chat: chatId })
-      .populate("sender", "name email")
+      .populate("sender", "_id name email")
       .sort({ createdAt: 1 });
 
     res.json({ success: true, messages });
@@ -320,7 +320,7 @@ router.get("/user/:userId", protect, async (req, res) => {
       chats.map(async (chat) => {
         const lastMessageDoc = await Message.findOne({ chat: chat._id })
           .sort({ createdAt: -1 })
-          .populate("sender", "name email");
+          .populate("sender", "_id name email");
 
         const seller = chat.members.find((m) => m._id.toString() !== userId);
 
