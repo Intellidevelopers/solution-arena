@@ -56,54 +56,77 @@ const PORT = process.env.PORT || 5000;
 // Create HTTP server
 const server = http.createServer(app);
 
-// Setup Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*", // restrict this in production
+    origin: "*", // restrict in production
     methods: ["GET", "POST"]
   }
 });
 
-// Keep track of online users
-let onlineUsers = {};
+let onlineUsers = {}; // { userId: socketId }
 
-// Socket.IO connection
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
 
-  // User comes online
-  socket.on('userOnline', (userId) => {
+  // User joins
+  socket.on("userOnline", (userId) => {
     onlineUsers[userId] = socket.id;
-    io.emit('onlineUsers', Object.keys(onlineUsers));
+    io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 
-  // User sends a message
-  socket.on('sendMessage', ({ chatId, senderId, text }) => {
-    const message = { chatId, senderId, text, createdAt: new Date() };
-    
-    // Emit to other users in the chat
-    const receiverSocketId = Object.values(onlineUsers).find(id => id !== socket.id);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit('receiveMessage', message);
-    }
+  // Join a chat room
+  socket.on("joinRoom", (chatId) => {
+    socket.join(chatId);
+    console.log(`Socket ${socket.id} joined room ${chatId}`);
+  });
 
-    // Optionally save message to DB here
+  socket.on("leaveRoom", (chatId) => {
+    socket.leave(chatId);
+    console.log(`Socket ${socket.id} left room ${chatId}`);
+  });
+
+  // Send message
+  socket.on("sendMessage", async ({ chatId, senderId, text }) => {
+    try {
+      const Message = require("./models/Message"); // import model
+      const Chat = require("./models/Chat");
+
+      // Save message in DB
+      const message = new Message({
+        chat: chatId,
+        sender: senderId,
+        text,
+      });
+      await message.save();
+
+      // Update lastMessage in chat
+      await Chat.findByIdAndUpdate(chatId, { lastMessage: text });
+
+      // Populate sender
+      const populatedMessage = await message.populate("sender", "name email");
+
+      // Emit to everyone in the chat room
+      io.to(chatId).emit("newMessage", populatedMessage);
+    } catch (err) {
+      console.error("Socket sendMessage error:", err);
+    }
   });
 
   // Typing indicator
-  socket.on('typing', ({ chatId, senderId, isTyping }) => {
-    socket.broadcast.emit('typing', { chatId, senderId, isTyping });
+  socket.on("typing", ({ chatId, senderId, isTyping }) => {
+    socket.to(chatId).emit("typing", { chatId, senderId, isTyping });
   });
 
   // Disconnect
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
     onlineUsers = Object.fromEntries(
       Object.entries(onlineUsers).filter(([key, value]) => value !== socket.id)
     );
-    io.emit('onlineUsers', Object.keys(onlineUsers));
+    io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 });
+
 
 // Start server
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
