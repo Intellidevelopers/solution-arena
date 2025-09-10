@@ -2,7 +2,14 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middlewares/upload');
-const productController = require('../controllers/productController');
+const { 
+  createProduct,
+  getProducts,
+  getUserListings,
+  getProductsBySubCategory,   // ✅ add this
+  markProductAsSold           // ✅ add this
+} = require('../controllers/productController');
+
 const { protect } = require('../middlewares/authMiddleware');
 const Product = require('../models/Product');
 
@@ -94,7 +101,7 @@ router.post(
     { name: "thumbnail", maxCount: 1 },
     { name: "images", maxCount: 5 }
   ]),
-  productController.createProduct
+  createProduct
 );
 
 /**
@@ -109,7 +116,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get('/', productController.getProducts);
+router.get('/', getProducts);
 
 /**
  * @swagger
@@ -125,7 +132,7 @@ router.get('/', productController.getProducts);
  *       500:
  *         description: Server error
  */
-router.get("/my-listings", protect, productController.getUserListings);
+router.get("/my-listings", protect, getUserListings);
 
 /**
  * @swagger
@@ -202,4 +209,65 @@ router.get("/seller/:sellerId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /products/category/{categoryId}/{subCategoryId}:
+ *   get:
+ *     summary: Get products by category and subcategory
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Category ID
+ *       - in: path
+ *         name: subCategoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subcategory ID
+ *     responses:
+ *       200:
+ *         description: Products fetched successfully
+ *       404:
+ *         description: No products found
+ *       500:
+ *         description: Server error
+ */
+// GET products by category + subCategory
+router.get("/subcategory/:subCategoryId", getProductsBySubCategory);
+
+
+/**
+ * @swagger
+ * /products/sold/{productId}:
+ *   put:
+ *     summary: Mark a product as sold
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Product marked as sold
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Server error
+ */
+router.put("/:id/sold", markProductAsSold);
+
+
 module.exports = router;
+
+

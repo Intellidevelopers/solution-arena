@@ -2,6 +2,7 @@
 const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const mongoose = require("mongoose");
 
 // helper to upload buffer to Cloudinary
 const uploadToCloudinary = (fileBuffer, folder, resourceType = "image") => {
@@ -114,8 +115,61 @@ const getUserListings = async (req, res) => {
   }
 };
 
+// ✅ Get products by subCategory only
+const getProductsBySubCategory = async (req, res) => {
+  try {
+    const { subCategoryId } = req.params;
+
+    console.log("Incoming subCategoryId:", subCategoryId);
+
+    const products = await Product.find({ subCategory: subCategoryId });
+
+    console.log("Found products:", products);
+
+    if (!products.length) {
+      return res.status(404).json({ success: false, message: "No products found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Products fetched successfully",
+      data: products
+    });
+  } catch (err) {
+    console.error("Error fetching by subCategory:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ✅ Mark product as sold
+const markProductAsSold = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { sold: true },   // ✅ corrected from isSold
+      { new: true }
+    ).populate("category subCategory poster");
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.json({ success: true, message: "Product marked as sold", data: product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
 module.exports = {
   createProduct,
   getProducts,
   getUserListings,
+  getProductsBySubCategory,
+  markProductAsSold
 };

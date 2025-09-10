@@ -19,15 +19,18 @@ const ProductSchema = new mongoose.Schema(
     country: { type: String },
 
     // Product info
-    purchaseYear: { type: String }, // e.g. "2022"
+    purchaseYear: { type: String },
     condition: { type: String, enum: ["New", "Used", "Refurbished"], default: "Used" },
 
     // Media
-    thumbnail: { type: String }, // main image
+    thumbnail: { type: String },
     images: [{ type: String }],
 
     // Link to user
     poster: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+    // Product status
+    sold: { type: Boolean, default: false },   // <-- Added
   },
   { timestamps: true }
 );
