@@ -3,6 +3,9 @@ const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { protect } = require("../middlewares/authMiddleware");
 const socketHelper = require("../socket"); // <- helper module that exposes init/getIO
+const { upload, uploadToCloudinary } = require("../middlewares/uploadMiddleware");
+
+
 
 const router = express.Router();
 
@@ -62,64 +65,62 @@ const router = express.Router();
  *         description: Server error
  */
 
-router.post("/send", protect, async (req, res) => {
+
+router.post("/send", protect, upload.single("attachment"), async (req, res) => {
   try {
     const { chatId, text } = req.body;
     const sender = req.user._id;
 
-    if (!chatId || !text) {
-      return res
-        .status(400)
-        .json({ success: false, message: "chatId and text are required" });
+    if (!chatId) {
+      return res.status(400).json({ success: false, message: "chatId required" });
     }
 
-    // verify chat exists
     const chat = await Chat.findById(chatId);
     if (!chat) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Chat not found" });
+      return res.status(404).json({ success: false, message: "Chat not found" });
     }
 
-    // create and save message
+    let attachment = null;
+    if (req.file) {
+      attachment = await uploadToCloudinary(req.file.path);
+    }
+
+    if (!text && !attachment) {
+      return res.status(400).json({
+        success: false,
+        message: "Either text or attachment required",
+      });
+    }
+
     const message = new Message({
       chat: chatId,
       sender,
-      text,
-      read: false,
+      text: text || null,
+      attachment,
     });
 
     await message.save();
 
-    // update chat's lastMessage
-    chat.lastMessage = text;
+    chat.lastMessage = text || "[Attachment]";
     await chat.save();
 
-    // populate sender fields we want to send to clients
-    const populatedMessageDoc = await message.populate("sender", "_id name email");
-    // convert to plain object for safer emission
-    const populatedMessage = populatedMessageDoc.toObject
-      ? populatedMessageDoc.toObject()
-      : populatedMessageDoc;
+    const populatedMessage = await message.populate("sender", "_id name email");
 
-    // Emit the saved message to the chat room (if socket io is initialized)
     try {
-      const io = socketHelper.getIO(); // throws if not initialized
-      // emit to the room identified by chatId
+      const io = socketHelper.getIO();
       io.to(String(chatId)).emit("newMessage", populatedMessage);
-      // optionally emit to global 'newMessageAll' if you want other UI to react
-      // io.emit("newMessageAll", { chatId, message: populatedMessage });
-    } catch (emitErr) {
-      // socket may not be initialized (e.g. tests, or early in boot) — do not fail the request
-      console.warn("Socket.io not initialized - message saved but not emitted:", emitErr.message || emitErr);
+    } catch (err) {
+      console.warn("Socket emit error:", err.message);
     }
 
-    return res.json({ success: true, message: populatedMessage });
+    res.json({ success: true, message: populatedMessage });
   } catch (err) {
-    console.error("POST /api/message/send error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("POST /api/messages/send error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+
 
 module.exports = router;
 
