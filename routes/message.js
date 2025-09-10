@@ -3,7 +3,8 @@ const Message = require("../models/Message");
 const Chat = require("../models/Chat");
 const { protect } = require("../middlewares/authMiddleware");
 const socketHelper = require("../socket"); // <- helper module that exposes init/getIO
-const { upload, uploadToCloudinary } = require("../middlewares/uploadMiddleware");
+const { upload, uploadToCloudinary  } = require("../middlewares/uploadMiddleware");
+
 
 
 

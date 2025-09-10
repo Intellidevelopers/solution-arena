@@ -1,27 +1,48 @@
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
-require("dotenv").config();
 
-
+// Hardcode your Cloudinary credentials directly
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: "dtevbtlvj",
+  api_key: "199679548174523",
+  api_secret: "okWkYH1i6IguiQUfOwPrxIxuLM4",
 });
 
+// Multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
 
-const upload = multer({ dest: "uploads/" });
+// File filter to allow only images or PDFs
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only JPG, JPEG, PNG, or PDF allowed."), false);
+  }
+};
 
-const uploadToCloudinary = async (localFilePath) => {
+const upload = multer({ storage, fileFilter });
+
+// Upload to Cloudinary
+const uploadToCloudinary = async (filePath) => {
   try {
-    const result = await cloudinary.uploader.upload(localFilePath, {
+    const result = await cloudinary.uploader.upload(filePath, {
       folder: "chat_attachments",
+      resource_type: "auto", // handles both images and PDFs
     });
-    fs.unlinkSync(localFilePath);
+    fs.unlinkSync(filePath); // remove local file after upload
     return result.secure_url;
   } catch (err) {
-    if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
+    console.error("Cloudinary upload error:", err);
+    fs.unlinkSync(filePath); // remove file even on error
     throw err;
   }
 };

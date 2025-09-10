@@ -24,7 +24,7 @@ const messageRoutes = require("./routes/message");
 
 dotenv.config();
 connectDB();
-console.log(process.env)
+// console.log(process.env)
 
 const app = express();
 
