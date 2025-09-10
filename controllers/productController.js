@@ -58,6 +58,7 @@ const createProduct = async (req, res) => {
       thumbnail,
       images,
       poster, // ✅ set poster
+      sold: false
     });
 
     const savedProduct = await product.save();
@@ -75,16 +76,21 @@ const createProduct = async (req, res) => {
 
 
 // Get all products
+// Get all unsold products
 const getProducts = async (req, res) => {
   try {
-    const products = await Product.find()
-      .populate("category", "name")
-      .populate("subCategory", "name")
-      .populate("poster", "firstName lastName email address avatar"); // added fields
+    const products = await Product.find({
+  $or: [{ sold: false }, { sold: { $exists: false } }]
+})
+.populate("category", "name")
+.populate("subCategory", "name")
+.populate("poster", "firstName lastName email address avatar")
+.sort({ createdAt: -1 });
+
 
     res.json({
       success: true,
-      message: "Products fetched successfully",
+      message: "Unsold products fetched successfully",
       data: products,
     });
   } catch (error) {
