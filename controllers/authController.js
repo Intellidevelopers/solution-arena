@@ -142,9 +142,9 @@ exports.login = async (req, res) => {
     }
 
     // 🚨 Block disabled accounts
-    if (user.isDisabled) {
-      return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
-    }
+    // if (user.isDisabled) {
+    //   return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
+    // }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
