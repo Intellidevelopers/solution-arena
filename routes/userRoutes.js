@@ -1,18 +1,32 @@
-// routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const mongoose = require("mongoose");
 
+// Helper to validate and convert ID
+const toObjectId = (id) => {
+  if (!id) return null;
+  try {
+    return new mongoose.Types.ObjectId(id); // ✅ Use 'new' with ObjectId
+  } catch (err) {
+    return null;
+  }
+};
+
 // ✅ Block user
 router.post("/:userId/block/:blockId", async (req, res) => {
   try {
-    const { userId, blockId } = req.params;
+    const userId = toObjectId(req.params.userId);
+    const blockId = toObjectId(req.params.blockId);
+
+    if (!userId || !blockId) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { $addToSet: { blockedUsers: blockId } }, // add only if not already there
-      { new: true } // return updated document
+      { $addToSet: { blockedUsers: blockId } },
+      { new: true }
     );
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -23,17 +37,21 @@ router.post("/:userId/block/:blockId", async (req, res) => {
   }
 });
 
-
 // ✅ Unblock user
 router.post("/:userId/unblock/:blockId", async (req, res) => {
   try {
-    const { userId, blockId } = req.params;
-    const user = await User.findById(userId);
+    const userId = toObjectId(req.params.userId);
+    const blockId = toObjectId(req.params.blockId);
 
+    if (!userId || !blockId) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.blockedUsers = user.blockedUsers.filter(
-      (id) => id.toString() !== blockId
+      (id) => id.toString() !== blockId.toString()
     );
     await user.save();
 
@@ -46,9 +64,10 @@ router.post("/:userId/unblock/:blockId", async (req, res) => {
 // ✅ Check if a user is blocked by logged-in user
 router.get("/:loggedInUserId/isBlocked/:userId", async (req, res) => {
   try {
-    const { loggedInUserId, userId } = req.params;
+    const loggedInUserId = toObjectId(req.params.loggedInUserId);
+    const userId = toObjectId(req.params.userId);
 
-    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(loggedInUserId)) {
+    if (!loggedInUserId || !userId) {
       return res.status(400).json({ message: "Invalid user ID" });
     }
 
@@ -56,7 +75,7 @@ router.get("/:loggedInUserId/isBlocked/:userId", async (req, res) => {
     if (!loggedInUser) return res.status(404).json({ message: "User not found" });
 
     const isBlocked = loggedInUser.blockedUsers.some(
-      (id) => id.toString() === userId
+      (id) => id.toString() === userId.toString()
     );
 
     res.json({ success: true, isBlocked });
@@ -64,7 +83,5 @@ router.get("/:loggedInUserId/isBlocked/:userId", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
-
 
 module.exports = router;
