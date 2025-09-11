@@ -43,4 +43,28 @@ router.post("/:userId/unblock/:blockId", async (req, res) => {
   }
 });
 
+// ✅ Check if a user is blocked by logged-in user
+router.get("/:loggedInUserId/isBlocked/:userId", async (req, res) => {
+  try {
+    const { loggedInUserId, userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(loggedInUserId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const loggedInUser = await User.findById(loggedInUserId);
+    if (!loggedInUser) return res.status(404).json({ message: "User not found" });
+
+    const isBlocked = loggedInUser.blockedUsers.some(
+      (id) => id.toString() === userId
+    );
+
+    res.json({ success: true, isBlocked });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
 module.exports = router;
