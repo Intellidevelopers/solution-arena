@@ -2,6 +2,8 @@ const express = require("express");
 const Chat = require("../models/Chat");
 const Product = require("../models/Product");
 const { protect } = require("../middlewares/authMiddleware");
+const Message = require("../models/Message");
+const checkDisabled = require("../middlewares/checkDisabled"); // 🚨 import
 
 const router = express.Router();
 
@@ -73,7 +75,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.post("/init", protect, async (req, res) => {
+router.post("/init", protect, checkDisabled, async (req, res) => {
   try {
     const { productId } = req.body;
     const userId = req.user._id;
@@ -144,3 +146,23 @@ module.exports = router;
  *         updatedAt:
  *           type: string
  */
+
+// routes/chatRoutes.js
+
+
+// ✅ Delete all messages in a chat
+router.delete("/:chatId", async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    // Delete messages for this chat
+    await Message.deleteMany({ chat: chatId });
+
+    // Optional: also delete chat record itself
+    await Chat.findByIdAndDelete(chatId);
+
+    res.json({ success: true, message: "Chat and messages deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});

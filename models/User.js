@@ -12,9 +12,12 @@ const userSchema = new mongoose.Schema(
     otpExpires: { type: Date },
     isVerified: { type: Boolean, default: false },
 
+    isDisabled: { type: Boolean, default: false }, // 🚨 disable flag
+
     // Followers & Following
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] // ✅ store blocked user IDs
   },
   { timestamps: true }
 );
