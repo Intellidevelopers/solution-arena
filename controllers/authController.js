@@ -125,6 +125,7 @@ exports.verifyOtp = async (req, res) => {
 };
 
 // 🔑 Login
+// 🔑 Login
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -135,8 +136,14 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Block unverified
     if (!user.isVerified) {
       return res.status(403).json({ message: "Please verify your account first" });
+    }
+
+    // 🚨 Block disabled accounts
+    if (user.isDisabled) {
+      return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -152,6 +159,7 @@ exports.login = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         businessName: user.businessName,
+        isDisabled: user.isDisabled, // include flag
       },
       token,
     });
@@ -160,6 +168,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // 🔁 Resend OTP
 exports.resendOTP = async (req, res) => {
