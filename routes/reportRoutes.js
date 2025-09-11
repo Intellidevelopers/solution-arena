@@ -30,31 +30,26 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Admin - Mark report reviewed and disable reported user
+// ✅ Admin - Mark report reviewed & disable user
 router.put("/:reportId/review", async (req, res) => {
   try {
     const report = await Report.findById(req.params.reportId).populate("reportedUser");
-
     if (!report) return res.status(404).json({ message: "Report not found" });
 
+    // Mark report as reviewed
     report.status = "reviewed";
     await report.save();
 
-    // 🚨 Disable reported user
-    const reportedUser = report.reportedUser;
-    if (reportedUser) {
-      reportedUser.isDisabled = true;
-      await reportedUser.save();
-    }
+    // ✅ Disable the reported user's account
+    const User = require("../models/User");
+    await User.findByIdAndUpdate(report.reportedUser._id, { isDisabled: true });
 
-    res.json({ 
-      success: true, 
-      message: `Report reviewed. User ${reportedUser?.username} has been disabled.` 
-    });
+    res.json({ success: true, message: "Report reviewed & user disabled" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 
 module.exports = router;
