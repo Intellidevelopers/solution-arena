@@ -169,6 +169,103 @@ const markProductAsSold = async (req, res) => {
   }
 };
 
+// ✅ Delete product listing
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // Only the poster can delete their product
+    if (product.poster.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized to delete this product",
+      });
+    }
+
+    await Product.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting product:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
+
+
+
+// ✅ Edit product
+const editProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // Only the poster can edit their product
+    if (product.poster.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized to edit this product" });
+    }
+
+    const updates = req.body;
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
+      new: true,
+    })
+      .populate("category", "name")
+      .populate("subCategory", "name")
+      .populate("poster", "firstName lastName email avatar");
+
+    res.json({
+      success: true,
+      message: "Product updated successfully",
+      data: updatedProduct,
+    });
+  } catch (err) {
+    console.error("Error editing product:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ✅ Mark product as unsold
+const markProductAsUnsold = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // ✅ Only the poster can mark as unsold
+    if (product.poster.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    product.sold = false;
+    await product.save();
+
+    await product.populate("category subCategory poster");
+
+    res.json({ success: true, message: "Product marked as unsold", data: product });
+  } catch (err) {
+    console.error("Error marking product as unsold:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 
 
 
@@ -177,5 +274,9 @@ module.exports = {
   getProducts,
   getUserListings,
   getProductsBySubCategory,
-  markProductAsSold
+  markProductAsSold,
+  markProductAsUnsold,
+  deleteProduct,
+  editProduct
 };
+

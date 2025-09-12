@@ -7,7 +7,10 @@ const {
   getProducts,
   getUserListings,
   getProductsBySubCategory,   // ✅ add this
-  markProductAsSold           // ✅ add this
+  markProductAsSold,
+  markProductAsUnsold,
+  deleteProduct,
+  editProduct
 } = require('../controllers/productController');
 
 const { protect } = require('../middlewares/authMiddleware');
@@ -266,6 +269,9 @@ router.get("/subcategory/:subCategoryId", getProductsBySubCategory);
  *         description: Server error
  */
 router.put("/:id/sold", markProductAsSold);
+router.put("/:id/unsold", protect, markProductAsUnsold);
+router.delete("/:id", protect, deleteProduct);
+router.put("/:id/edit", protect, editProduct);
 
 
 module.exports = router;
