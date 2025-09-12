@@ -22,13 +22,57 @@ const createTransporter = () =>
 // 📧 helper - send OTP email
 const sendOtpEmail = async (to, otp) => {
   const transporter = createTransporter();
+
+  const htmlTemplate = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Verify Your Email</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 0; margin: 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <tr>
+        <td style="background-color: #4F46E5; padding: 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Solution Market Arena</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 30px;">
+          <h2 style="color: #111827; font-size: 20px; margin-bottom: 15px;">Verify Your Email Address</h2>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Welcome! To complete your registration, please use the OTP code below:
+          </p>
+          <p style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 28px; font-weight: bold; color: #4F46E5; letter-spacing: 4px;">${otp}</span>
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px; text-align: center;">
+            This code will expire in <strong>10 minutes</strong>.
+          </p>
+          <p style="color: #6B7280; font-size: 14px; margin-top: 30px;">
+            If you didn’t request this, you can safely ignore this email.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6B7280;">
+          &copy; ${new Date().getFullYear()} Solution Arena. All rights reserved.
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `;
+
   await transporter.sendMail({
-    from: `"Solution Arena" <${process.env.EMAIL_USER}>`,
+    from: `"Solution Market Arena" <${process.env.EMAIL_USER}>`,
     to,
-    subject: "Your OTP Code",
-    html: `<p>Your OTP code is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,
+    subject: "Verify Your Email - OTP Code",
+    html: htmlTemplate,
   });
 };
+
 
 // 📝 Register (signup)
 exports.register = async (req, res) => {
