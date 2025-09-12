@@ -346,16 +346,22 @@ router.get("/user/:userId", protect, async (req, res) => {
     const { userId } = req.params;
 
     const chats = await Chat.find({ members: userId })
-      .populate("members", "name email")
+      .populate(
+        "members",
+        "firstName lastName businessName email location isBlocked"
+      )
       .populate("product", "title thumbnail price");
 
     const chatWithLastMessage = await Promise.all(
       chats.map(async (chat) => {
         const lastMessageDoc = await Message.findOne({ chat: chat._id })
           .sort({ createdAt: -1 })
-          .populate("sender", "_id name email");
+          .populate("sender", "_id firstName lastName email");
 
-        const seller = chat.members.find((m) => m._id.toString() !== userId);
+        // Pick the other member as seller
+        const seller = chat.members.find(
+          (m) => m._id.toString() !== userId
+        );
 
         return {
           _id: chat._id,
@@ -377,5 +383,6 @@ router.get("/user/:userId", protect, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 module.exports = router;
