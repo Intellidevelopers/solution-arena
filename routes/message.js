@@ -66,6 +66,36 @@ const router = express.Router();
  *         description: Server error
  */
 
+function containsRestrictedInfo(text) {
+  if (!text) return false;
+
+  const lower = text.toLowerCase();
+
+  // ✅ Phone numbers (digits, spaced, hyphen, brackets, etc.)
+  const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/g;
+
+  // ✅ Email addresses
+  const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+
+  // ✅ Common social media handles/keywords
+  const socialRegex = /\b(instagram|facebook|snapchat|twitter|x\.com|tiktok|telegram|whatsapp|wa\.me|imo|wechat|viber)\b/i;
+
+  // ✅ "at" tricks (like `name [at] gmail`)
+  const obfuscatedAtRegex = /\b(at|where|arroba)\b/i;
+
+  // ✅ Dot tricks (like `gmail dot com`)
+  const obfuscatedDotRegex = /\b(dot|punkt|dotcom)\b/i;
+
+  return (
+    phoneRegex.test(lower) ||
+    emailRegex.test(lower) ||
+    socialRegex.test(lower) ||
+    obfuscatedAtRegex.test(lower) ||
+    obfuscatedDotRegex.test(lower)
+  );
+}
+
+
 
 router.post("/send", protect, upload.single("attachment"), async (req, res) => {
   try {
@@ -79,6 +109,14 @@ router.post("/send", protect, upload.single("attachment"), async (req, res) => {
     const chat = await Chat.findById(chatId);
     if (!chat) {
       return res.status(404).json({ success: false, message: "Chat not found" });
+    }
+
+    // 🔒 Check for restricted info
+    if (text && containsRestrictedInfo(text)) {
+      return res.status(400).json({
+        success: false,
+        message: "Sharing contact info (phone, email, social media) is not allowed.",
+      });
     }
 
     let attachment = null;
@@ -120,6 +158,7 @@ router.post("/send", protect, upload.single("attachment"), async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 
 
