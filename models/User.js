@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Product = require("./Product"); // import your Product model
 
 const userSchema = new mongoose.Schema(
   {
@@ -22,10 +23,34 @@ const userSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-// ✅ Virtual field to check if current user is blocked by another user
+// ✅ Virtual field
 userSchema.virtual("isBlocked").get(function () {
-  // `this._blockedBy` should be set manually when fetching user if needed
   return !!this._blockedBy;
+});
+
+// ✅ Middleware: When a user is deleted, also delete their products
+userSchema.pre("findOneAndDelete", async function (next) {
+  try {
+    const userId = this.getQuery()._id;
+    if (userId) {
+      await Product.deleteMany({ user: userId });
+      console.log(`✅ Deleted all products for user ${userId}`);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Also handle if deleteOne is used
+userSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+  try {
+    await Product.deleteMany({ user: this._id });
+    console.log(`✅ Deleted all products for user ${this._id}`);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = mongoose.model("User", userSchema);

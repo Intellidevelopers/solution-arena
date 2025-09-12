@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
+const Product = require("../models/Product");
 
 // 🔑 helper - generate JWT
 const generateToken = (id) => {
@@ -296,5 +297,27 @@ exports.getSellerProfile = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Failed to fetch seller profile" });
+  }
+};
+
+// Delete user + products
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Delete all products belonging to this user
+    await Product.deleteMany({ user: user._id });
+
+    // Now delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ success: true, message: "User and their products deleted" });
+  } catch (err) {
+    console.error("❌ Delete User Error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
