@@ -133,14 +133,18 @@ exports.register = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+
     if (!email || !otp) {
       return res.status(400).json({ message: "Email and OTP are required" });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = await User.findOne({
+      email,
+      otp,
+      otpExpires: { $gt: Date.now() },
+    });
 
-    if (!user.otp || !user.otpExpires || user.otp !== otp || Date.now() > user.otpExpires) {
+    if (!user) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
@@ -151,7 +155,8 @@ exports.verifyOtp = async (req, res) => {
 
     const token = generateToken(user._id);
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "OTP verified successfully",
       user: {
         id: user._id,
@@ -163,13 +168,12 @@ exports.verifyOtp = async (req, res) => {
       },
       token,
     });
-  } catch (err) {
-    console.error("❌ Verify OTP error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    console.error("❌ OTP Verification Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// 🔑 Login
 // 🔑 Login
 exports.login = async (req, res) => {
   try {
@@ -330,5 +334,75 @@ exports.deleteUser = async (req, res) => {
   } catch (err) {
     console.error("❌ deleteUser error:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// =============================
+// 🔑 Forgot Password
+// =============================
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Generate OTP & set expiry (10 min)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    // Send OTP to email
+    await sendOtpEmail(user.email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent to your email address",
+    });
+  } catch (error) {
+    console.error("❌ Forgot Password Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// =============================
+// 🔑 Reset Password
+// =============================
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Hash and update password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+
+    // Clear OTP fields if any exist
+    user.otp = undefined;
+    user.otpExpires = undefined;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful. You can now log in with your new password.",
+    });
+  } catch (error) {
+    console.error("❌ Reset Password Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
