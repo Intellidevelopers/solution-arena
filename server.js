@@ -23,6 +23,8 @@ const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/message");
 const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+
 
 dotenv.config();
 connectDB();
@@ -50,6 +52,8 @@ app.use("/api/message", messageRoutes);
 app.use("/api", followRoutes);
 app.use("/api/report", reportRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/notification", notificationRoutes);
+
 
 // Error handling
 app.use(require("./middlewares/errorMiddleware"));
