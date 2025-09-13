@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Product = require("./Product"); // import your Product model
+const Product = require("./Product"); // import Product model safely
 
 const userSchema = new mongoose.Schema(
   {
@@ -12,10 +12,8 @@ const userSchema = new mongoose.Schema(
     otp: { type: String },
     otpExpires: { type: Date },
     isVerified: { type: Boolean, default: false },
-
     isDisabled: { type: Boolean, default: false },
 
-    // Followers & Following
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -23,17 +21,17 @@ const userSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-// ✅ Virtual field
+// ✅ Virtual
 userSchema.virtual("isBlocked").get(function () {
   return !!this._blockedBy;
 });
 
-// ✅ Middleware: When a user is deleted, also delete their products
+// 🔥 Middleware to delete products when a user is removed
 userSchema.pre("findOneAndDelete", async function (next) {
   try {
     const userId = this.getQuery()._id;
     if (userId) {
-      await Product.deleteMany({ user: userId });
+      await Product.deleteMany({ poster: userId });
       console.log(`✅ Deleted all products for user ${userId}`);
     }
     next();
@@ -42,10 +40,9 @@ userSchema.pre("findOneAndDelete", async function (next) {
   }
 });
 
-// Also handle if deleteOne is used
 userSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
   try {
-    await Product.deleteMany({ user: this._id });
+    await Product.deleteMany({ poster: this._id });
     console.log(`✅ Deleted all products for user ${this._id}`);
     next();
   } catch (err) {
@@ -53,4 +50,4 @@ userSchema.pre("deleteOne", { document: true, query: false }, async function (ne
   }
 });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);
