@@ -26,7 +26,7 @@ userSchema.virtual("isBlocked").get(function () {
   return !!this._blockedBy;
 });
 
-// 🔥 Middleware to delete products when a user is removed
+// 🔥 Middleware to delete products when a user is removed via Mongoose
 userSchema.pre("findOneAndDelete", async function (next) {
   try {
     const userId = this.getQuery()._id;
@@ -40,6 +40,7 @@ userSchema.pre("findOneAndDelete", async function (next) {
   }
 });
 
+// Also handle `deleteOne()` called directly on document
 userSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
   try {
     await Product.deleteMany({ poster: this._id });
@@ -48,6 +49,24 @@ userSchema.pre("deleteOne", { document: true, query: false }, async function (ne
   } catch (err) {
     next(err);
   }
+});
+
+// 🔁 Change stream to handle direct MongoDB deletions
+mongoose.connection.once("open", () => {
+  const userCollection = mongoose.connection.collection("users");
+
+  const changeStream = userCollection.watch([{ $match: { operationType: "delete" } }]);
+
+  changeStream.on("change", async (change) => {
+    try {
+      const deletedUserId = change.documentKey._id;
+      console.log(`🗑 User deleted directly: ${deletedUserId}, deleting products...`);
+      await Product.deleteMany({ poster: deletedUserId });
+      console.log(`✅ Deleted all products for user ${deletedUserId}`);
+    } catch (err) {
+      console.error("❌ Error deleting products for deleted user:", err);
+    }
+  });
 });
 
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);
