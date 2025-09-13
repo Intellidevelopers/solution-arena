@@ -1,7 +1,8 @@
 // controllers/followController.js
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
-// Follow a user
+
 // Follow a user
 exports.followUser = async (req, res) => {
   try {
@@ -34,12 +35,22 @@ exports.followUser = async (req, res) => {
     await user.save();
     await targetUser.save();
 
+    // ✅ Create follow notification for target user
+    await Notification.create({
+      user: targetId, // the one receiving the notification
+      type: "follow",
+      title: "New Follower",
+      message: `${user.firstName} ${user.lastName} started following you.`,
+      relatedUser: userId, // so frontend can show profile link
+    });
+
     return res.json({ success: true, message: "Followed successfully" });
   } catch (error) {
     console.error("❌ Follow Error:", error.message, error.stack);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 // Unfollow a user

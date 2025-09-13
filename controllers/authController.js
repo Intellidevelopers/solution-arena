@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Notification = require("../models/Notification");
 
 // 🔑 helper - generate JWT
 const generateToken = (id) => {
@@ -373,6 +374,8 @@ exports.forgotPassword = async (req, res) => {
 // =============================
 // 🔑 Reset Password
 // =============================
+
+
 exports.resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
@@ -397,6 +400,14 @@ exports.resetPassword = async (req, res) => {
 
     await user.save();
 
+    // ✅ Create notification
+    await Notification.create({
+      user: user._id,
+      type: "security",
+      title: "Password Reset Successful 🎉",
+      message: "Your password has been changed. If this wasn’t you, please secure your account immediately.",
+    });
+
     return res.status(200).json({
       success: true,
       message: "Password reset successful. You can now log in with your new password.",
@@ -406,6 +417,7 @@ exports.resetPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // =============================
 // 🔁 Resend OTP for Reset Password

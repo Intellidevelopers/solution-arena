@@ -4,8 +4,7 @@ const Chat = require("../models/Chat");
 const { protect } = require("../middlewares/authMiddleware");
 const socketHelper = require("../socket"); // <- helper module that exposes init/getIO
 const { upload, uploadToCloudinary  } = require("../middlewares/uploadMiddleware");
-
-
+const Notification = require("../models/Notification");
 
 
 const router = express.Router();
@@ -131,12 +130,31 @@ router.post("/send", protect, upload.single("attachment"), async (req, res) => {
       });
     }
 
-    const message = new Message({
-      chat: chatId,
-      sender,
-      text: text || null,
-      attachment,
-    });
+const message = new Message({
+  chat: chatId,
+  sender,
+  text: text || null,
+  attachment,
+});
+
+await message.save();
+
+// ✅ Send notification to other members (except sender)
+const otherMembers = chat.members.filter(
+  (memberId) => memberId.toString() !== sender.toString()
+);
+
+for (const targetUserId of otherMembers) {
+  await Notification.create({
+    user: targetUserId, // notification receiver
+    type: "message",
+    title: "New Message",
+    message: text ? text : "You received a new attachment.",
+    relatedUser: sender,
+    relatedMessage: message._id,
+  });
+}
+
 
     await message.save();
 
