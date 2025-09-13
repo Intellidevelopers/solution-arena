@@ -301,23 +301,34 @@ exports.getSellerProfile = async (req, res) => {
 };
 
 // Delete user + products
+// ✅ Delete user and all their products
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const { id } = req.params;
 
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Not authorized" });
+    }
+
+    // Ensure only the account owner or admin can delete
+    if (req.user._id.toString() !== id.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Delete all products belonging to this user
-    await Product.deleteMany({ user: user._id });
+    // Delete all products posted by this user
+    await Product.deleteMany({ poster: user._id });
 
-    // Now delete the user
-    await User.findByIdAndDelete(req.params.id);
+    // Delete the user
+    await user.deleteOne();
 
-    res.json({ success: true, message: "User and their products deleted" });
+    return res.json({ success: true, message: "User and products deleted" });
   } catch (err) {
-    console.error("❌ Delete User Error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("❌ deleteUser error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -149,6 +149,8 @@ router.get("/profile", protect, authController.getProfile);
  *         description: Profile data
  */
 router.get("/:sellerId/profile", protect, authController.getSellerProfile);
+router.delete("/delete/:id", protect, authController.deleteUser);
+
 
 
 /**
