@@ -154,6 +154,7 @@ router.delete("/delete/:id", protect, authController.deleteUser);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.post("/verify-otp", authController.verifyOtp);
+router.post("/resend-reset-otp", authController.resendResetOtp);
 
 
 /**

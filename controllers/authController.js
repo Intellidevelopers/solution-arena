@@ -406,3 +406,36 @@ exports.resetPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// =============================
+// 🔁 Resend OTP for Reset Password
+// =============================
+exports.resendResetOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000; // valid for 10 min
+    await user.save();
+
+    // Send OTP via email
+    await sendOtpEmail(user.email, otp);
+
+    return res.status(200).json({
+      success: true,
+      message: "A new OTP has been sent to your email.",
+    });
+  } catch (error) {
+    console.error("❌ Resend Reset OTP Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
